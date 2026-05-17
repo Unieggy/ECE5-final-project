@@ -1,0 +1,7 @@
+{
+  "name": "lebron-gpt-site",
+  "private": true,
+  "scripts": {
+    "dev": "npx serve . -l 3000"
+  }
+}

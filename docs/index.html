@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lebron GPT — UCSD ECE 5</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet" />
+
+  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ══ HERO ══════════════════════════════════════════════════════════════ -->
+  <header class="hero">
+    <div class="hero-inner">
+      <span class="badge">UCSD ECE 5 &nbsp;·&nbsp; Lab 4 &nbsp;·&nbsp; 2025</span>
+      <h1>Lebron<span class="gold">GPT</span></h1>
+      <p class="tagline">
+        It follows a black line on the floor.<br />
+        We're very proud of it.
+      </p>
+      <div class="btn-group">
+        <button class="deploy-btn" id="deployBtn" onclick="deployLebron()">
+          Deploy Lebron
+        </button>
+        <button class="remove-btn" id="removeBtn" onclick="removeLebrons()">
+          Clear Court
+        </button>
+      </div>
+    </div>
+    <div class="scroll-hint">↓</div>
+  </header>
+
+  <main>
+
+    <!-- ══ 3D VIEWER ═════════════════════════════════════════════════════ -->
+    <section class="section card" id="viewer">
+      <div class="section-header">
+        <span class="label">The Machine</span>
+        <h2>Meet the Cart</h2>
+        <p class="sub">ESP32-S3 &nbsp;·&nbsp; L298N Dual H-Bridge &nbsp;·&nbsp; 7-Sensor Photoresistor Array &nbsp;·&nbsp; PID Control</p>
+      </div>
+
+      <div class="model-wrapper">
+        <model-viewer
+          src="cart.glb"
+          alt="3D model of the Lebron GPT line-following cart"
+          auto-rotate
+          camera-controls
+          shadow-intensity="1.2"
+          environment-image="neutral"
+          exposure="0.9"
+          rotation-per-second="18deg"
+        ></model-viewer>
+        <div class="model-chip">cart.glb &nbsp;·&nbsp; drop file to activate</div>
+      </div>
+
+      <p class="model-hint">drag to rotate &nbsp;·&nbsp; scroll to zoom &nbsp;·&nbsp; it doesn't bite</p>
+    </section>
+
+    <!-- ══ THE PLAYBOOK ══════════════════════════════════════════════════ -->
+    <section class="section" id="playbook">
+      <div class="section-header centered">
+        <span class="label">Hardware</span>
+        <h2>The Playbook</h2>
+        <p class="sub">Certified engineering decisions. Peer-reviewed by us, approved by no one.</p>
+      </div>
+
+      <div class="playbook-grid">
+
+        <div class="play-card">
+          <h3>Optical Shrouds</h3>
+          <p>We slid heat-shrink tubing and cut straws over the photoresistors to block ambient light and sharpen line detection. In our heads, this is the same as designing a satellite sensor array.</p>
+        </div>
+
+        <div class="play-card">
+          <h3>High-Contrast Underglow</h3>
+          <p>Ultra-bright white LEDs mounted under the chassis to overpower unpredictable room shadows. Technically robotics. Aesthetically Fast &amp; Furious.</p>
+        </div>
+
+        <div class="play-card">
+          <h3>Traction Engineering</h3>
+          <p>Wheels cleaned with rubbing alcohol. Coins placed directly over the drive axles for grip and weight distribution. The solution was coins. Just coins. It worked immediately.</p>
+        </div>
+
+        <div class="play-card">
+          <h3>Motor Noise Suppression</h3>
+          <p>0.1µF ceramic capacitors soldered across motor terminals to filter electrical noise and stabilize analog sensor readings. We told the motors to stop complaining. They listened.</p>
+        </div>
+
+        <div class="play-card play-card--wide">
+          <h3>Exponential Outriders Protocol</h3>
+          <p>When the outermost sensors of the V-shaped array detect the line, the error value is multiplied exponentially — triggering an aggressive emergency pivot. We call this "panic mode, but make it an algorithm." This one is actually in the code.</p>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ══ THE BRAIN ═════════════════════════════════════════════════════ -->
+    <section class="section card" id="brain">
+      <div class="section-header">
+        <span class="label">Software</span>
+        <h2>The Brain</h2>
+        <p class="sub">A PID controller tuned live by four potentiometers. Three of them matter.</p>
+      </div>
+
+      <div class="pid-display">
+        <div class="pid-term">
+          <span class="pid-letter gold">P</span>
+          <h4>Proportional</h4>
+          <p>How lost it is right now.<br /><code>error × kP</code></p>
+        </div>
+        <div class="pid-operator">+</div>
+        <div class="pid-term">
+          <span class="pid-letter purple-accent">I</span>
+          <h4>Integral</h4>
+          <p>How long it's been lost.<br /><code>Σerror × kI</code></p>
+        </div>
+        <div class="pid-operator">+</div>
+        <div class="pid-term">
+          <span class="pid-letter gold">D</span>
+          <h4>Derivative</h4>
+          <p>How fast it's getting more lost.<br /><code>Δerror × kD</code></p>
+        </div>
+      </div>
+
+      <div class="specs-grid">
+        <div class="spec">
+          <span class="spec-val">ESP32-S3</span>
+          <span class="spec-label">Microcontroller</span>
+        </div>
+        <div class="spec">
+          <span class="spec-val">240 MHz</span>
+          <span class="spec-label">Clock Speed</span>
+        </div>
+        <div class="spec">
+          <span class="spec-val">7</span>
+          <span class="spec-label">Photoresistors</span>
+        </div>
+        <div class="spec">
+          <span class="spec-val">4</span>
+          <span class="spec-label">Potentiometers</span>
+        </div>
+        <div class="spec">
+          <span class="spec-val">±3</span>
+          <span class="spec-label">Error Range</span>
+        </div>
+        <div class="spec">
+          <span class="spec-val">12 V</span>
+          <span class="spec-label">Motor Supply</span>
+        </div>
+      </div>
+
+      <div class="algo-note">
+        <p>
+          Position is estimated via a 7-sensor weighted centroid. Gains are tuned live
+          via physical potentiometers on the board —
+          <em>no laptop required, just hands and vibes.</em>
+        </p>
+      </div>
+    </section>
+
+    <!-- ══ TEAM ══════════════════════════════════════════════════════════ -->
+    <section class="section team-section">
+      <div class="section-header centered">
+        <span class="label">Built By</span>
+        <h2>The Roster</h2>
+      </div>
+      <div class="team-grid">
+        <div class="team-card">
+          <div class="team-avatar">ML</div>
+          <p class="team-name">Michael Lai</p>
+        </div>
+        <div class="team-card">
+          <div class="team-avatar">HT</div>
+          <p class="team-name">Hurley Chak Lam Tan</p>
+        </div>
+        <div class="team-card">
+          <div class="team-avatar">IL</div>
+          <p class="team-name">Imanol Lopez</p>
+        </div>
+        <div class="team-card">
+          <div class="team-avatar">RC</div>
+          <p class="team-name">Rommel Cabotaje</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer>
+    <p>Lebron GPT &nbsp;·&nbsp; UCSD ECE 5 Lab 4 &nbsp;·&nbsp; 2025</p>
+    <p class="footer-sub">No actual LeBrons were harmed in the making of this robot.</p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
