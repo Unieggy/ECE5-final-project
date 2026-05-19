@@ -147,6 +147,8 @@ void Calibrate() {
     Serial.print(String(Mn[i]) + " ");          // Print the White values that will be used by the robot
   Serial.println();
 
+  delay(3000);
+
   Serial.print("Black Vals:  ");
   for (int i = 0; i < totalPhotoResistors; i++)
     Serial.print(String(Mx[i]) + " ");          // Print the Black values that will be used by the robot
@@ -227,7 +229,8 @@ int ReadPotentiometerHelper(int pin, int min_resolution, int max_resolution, int
 void ReadPhotoResistors() {
   for (int i = 0; i < totalPhotoResistors; i++) { 
     rawPResistorData[i] = analogRead(LDR_Pin[i]);
-    LDR[i] = map(rawPResistorData[i], Mn[i], Mx[i], 0, 100); // Mn and Mx are created from calibration Min and Max for each pin
+    LDR[i] = map(rawPResistorData[i], Mn[i], Mx[i], 0, 100);
+    LDR[i] = constrain(LDR[i], 0, 100); // Mn and Mx are created from calibration Min and Max for each pin
   }    
 
 } // end ReadPhotoResistors()
@@ -265,42 +268,48 @@ void runMotorAtSpeed(side _side, int speed) {
 
 // ************************************************************************************************* //
 // Calculate error from photoresistor readings
+// ************************************************************************************************* //
+// Calculate error from photoresistor readings (Lebron GPT Centroid Method)
 void CalcError() {
-  MxRead = -99;
-  AveRead = 0.0;
-  for (int i = 0; i < totalPhotoResistors; i++) { // This loop goes through each photoresistor and stores the photoresistor with the highest value to the variable 'highestPResistor'
-    if (MxRead < LDR[i]) {
-      MxRead = LDR[i];
-      MxIndex = -1 * (i - 3);
-      highestPResistor = (float)i;
+  float numerator = 0.0;
+  float denominator = 0.0;
+  float threshold = 15.0; // Ignore any sensor reading below 15% (floor noise)
+  bool lineDetected = false;
+
+  // 1. Loop through ALL 7 sensors and sum up the weights
+  for (int i = 0; i < totalPhotoResistors; i++) {
+    float val = (float)LDR[i];
+
+    if (val > threshold) {
+      lineDetected = true;
+      
+      // Square the value to sharpen the peak and ignore minor shadows
+      float squaredVal = val * val; 
+      
+      numerator += (squaredVal * i);
+      denominator += squaredVal;
     }
-    AveRead = AveRead + (float)LDR[i] / (float)totalPhotoResistors;
   }
-  
-  CriteriaForMax = 1.5; 
-  if (MxRead > CriteriaForMax * AveRead) { // Make sure that the highestPResistor is actually "seeing" a line. What happens if there is no line and we take the photoresistor that happens to have the highest value?
 
-    // Next we assign variables to hold the index of the left and right Photoresistor that has the highest value, though we have to make sure that we aren't checking a Photoresistor that doesn't exist.
-    // Ex: To the left of the left most photoresistor or the right of the right most photoresistor
-    if (highestPResistor != 0)
-      leftHighestPR = highestPResistor - 1;
-    else
-      leftHighestPR = highestPResistor;
-
-    if (highestPResistor != totalPhotoResistors - 1)
-      rightHighestPR = highestPResistor + 1;
-    else
-      rightHighestPR = highestPResistor;
-
-    // Next we take the percentage of "line" each of our left, middle, and right photoresistors sees and then we take the average, which is our error calculation
-    float numerator = (float)(LDR[leftHighestPR] * leftHighestPR) + (float)(LDR[highestPResistor] * highestPResistor) + (float)(LDR[rightHighestPR] * rightHighestPR);
-    float denominator = (float)LDR[leftHighestPR] + (float)LDR[highestPResistor] + (float)LDR[rightHighestPR];
-
-    WeightedAve = ((float)numerator) / denominator;
-
-    error = (WeightedAve - totalPhotoResistors/2);
+  // 2. Calculate position and error
+  if (lineDetected) {
+    // This gives a precise decimal position from 0.0 to 6.0
+    WeightedAve = numerator / denominator;
+    
+    // Shift the scale so the center sensor (Index 3) equals 0 error.
+    // Resulting error is between -3.0 (hard left) and +3.0 (hard right)
+    error = WeightedAve - 3.0; 
+    
+  } else {
+    // 3. LOST LINE MEMORY
+    // If moving so fast that we completely overshoot the line,
+    // look at the last known error and command a hard spin to find it again.
+    if (lasterror > 0) {
+      error = 3.5; // Max positive error to force a hard right spin
+    } else {
+      error = -3.5; // Max negative error to force a hard left spin
+    }
   }
-  
 } // end CalcError()
 
 // ************************************************************************************************* //
