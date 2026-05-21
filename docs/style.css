@@ -211,6 +211,22 @@ h2 {
 
 /* ══ Model Viewer ════════════════════════════════════════════════════════════ */
 
+.video-wrapper {
+  width: 100%;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  margin: 1.5rem 0 0.8rem;
+  background: #000;
+}
+
+.video-wrapper video {
+  width: 100%;
+  display: block;
+  max-height: 540px;
+  object-fit: contain;
+}
+
 .model-wrapper {
   position: relative;
   width: 100%;

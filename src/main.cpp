@@ -39,14 +39,13 @@
 
 #define PRINTALLDATA        1  // Turn to 1  to prints ALL the data when changed to 1, Could be useful for debugging =)
                                 // !! Turn to 0 when running robot untethered
-#define NOMINALSPEED        30 // This is the base speed for both motors, can also be increased by using potentiometers
-
+#define NOMINALSPEED        80 // This is the base speed for both motors, can also be increased by using potentiometer
 // ************************************************************************************************* //
 
 // ****** DECLARE PINS HERE  ****** 
 
 // Taken from LEFT TO RIGHT of the robot ****** Orient yourself so that you are looking from the rear of the robot (photoresistors are farthest away from you, wheels are closest to you)
-//                  Left Motors   Right motors 
+//                  right Motors   left motors 
 L298NX2 DriveMotors(  42, 41, 40,      37, 39, 38);
 //                 ENA, IN1, IN2, ENB, IN3, IN4
 
@@ -61,6 +60,7 @@ const int I_pin = 11; // Pin connected to I term potentiometer
 const int D_pin = 10; // Pin connected to D term potentiometer
                                                                  
 int led_Pins[] = {46};  // LEDs to indicate what part of calibration you're on and to illuminate the photoresistors
+const int EXT_LED_PIN = 9; // External LED — steady on during calibration and full run
 
 // ****** DECLARE Variables HERE  ****** 
 
@@ -88,16 +88,32 @@ int Turn, M1P = 0, M2P = 0;
 float error, lasterror = 0, sumerror = 0;
 float kP, kI, kD;
 
-
+// Forward declarations
+void Calibrate();
+void CalibrateHelper(int numberOfMeasurements, boolean ifCalibratingBlack);
+void setLeds(int x);
+void ReadPotentiometers();
+int  ReadPotentiometerHelper(int pin, int min_resolution, int max_resolution, int min_potentiometer, int max_potentiometer);
+void ReadPhotoResistors();
+void RunMotors();
+void runMotorAtSpeed(side _side, int speed);
+void CalcError();
+void PID_Turn();
+void PrintData();
 
 // ************************************************************************************************* //
 // setup - runs once
 void setup() {
-  Serial.begin(9600);                            // For serial communication set up
+  Serial.begin(115200);
+  unsigned long t0 = millis();
+  while (!Serial && millis() - t0 < 2000) delay(10);
 
   for (int i = 0; i < numLEDs; i++)
     pinMode(led_Pins[i], OUTPUT);                // Initialize all LEDs to output
-  
+
+  pinMode(EXT_LED_PIN, OUTPUT);
+  digitalWrite(EXT_LED_PIN, LOW);               // External LED off at startup
+
   Calibrate();                                   // Calibrate black and white sensing
 
   ReadPotentiometers();                          // Read potentiometer values (Sp, P, I, & D)
@@ -107,6 +123,7 @@ void setup() {
 // ************************************************************************************************* //
 // loop - runs/loops forever
 void loop() {
+  
 
   ReadPotentiometers(); // Read potentiometers
 
@@ -119,9 +136,11 @@ void loop() {
   RunMotors();          // Runs motors
   
   if (PRINTALLDATA)     // If PRINTALLDATA Enabled, Print all the data
-    Print();         
+    PrintData();      
+    
   
 } // end loop()
+
 
 
 
@@ -135,12 +154,15 @@ void Calibrate() {
 
   int numberOfMeasurements = 20;                // set number Of Measurements to take
 
+  digitalWrite(EXT_LED_PIN, HIGH);              // External LED on — white calibration starting
   CalibrateHelper(numberOfMeasurements, false); // White Calibration
 
-  setLeds(0);                                   // Turn off LEDs to indicate user to calibrate other color
-  delay(2000);
-  
-  CalibrateHelper(numberOfMeasurements, true);  // Black Calibration
+  setLeds(0);
+  digitalWrite(EXT_LED_PIN, LOW);              // External LED off — gap, move robot to black
+  delay(6000);
+
+  digitalWrite(EXT_LED_PIN, HIGH);             // External LED on — black calibration starting
+  CalibrateHelper(numberOfMeasurements, true); // Black Calibration
 
   Serial.print("White Vals:  ");
   for (int i = 0; i < totalPhotoResistors; i++)
@@ -242,8 +264,8 @@ void RunMotors() {
   M1SpeedtoMotor = min(NOMINALSPEED + SpRead + M1P, 255); // limits speed to 255
   M2SpeedtoMotor = min(NOMINALSPEED + SpRead + M2P, 255); // remember M1Sp & M2Sp is defined at beginning of code (default 60)
   
-  runMotorAtSpeed(LEFT, M2SpeedtoMotor); // run right motor 
-  runMotorAtSpeed(RIGHT, M1SpeedtoMotor); // run left motor
+  runMotorAtSpeed(LEFT,  M1SpeedtoMotor); // physical RIGHT wheel (Motor A, left pins)
+  runMotorAtSpeed(RIGHT, M2SpeedtoMotor); // physical LEFT wheel  (Motor B, right pins)
 } // end RunMotors()
 
 // A function that commands a specified motor to move towards a given direction at a given speed
@@ -257,10 +279,10 @@ void runMotorAtSpeed(side _side, int speed) {
   }
   if (_side == RIGHT) {
     DriveMotors.setSpeedB(abs(speed));
-    if (speed > 0)                // swap direction if speed is negative
-      DriveMotors.backwardB();           // sets the direction of the motor from arguments
+    if (speed > 0)
+      DriveMotors.forwardB();
     else
-      DriveMotors.forwardB();          // sets the direction of the motor from arguments
+      DriveMotors.backwardB();
   }
 }
 
@@ -273,7 +295,7 @@ void runMotorAtSpeed(side _side, int speed) {
 void CalcError() {
   float numerator = 0.0;
   float denominator = 0.0;
-  float threshold = 15.0; // Ignore any sensor reading below 15% (floor noise)
+  float threshold = 5.0; // Ignore any sensor reading below 5% (floor noise)
   bool lineDetected = false;
 
   // 1. Loop through ALL 7 sensors and sum up the weights
@@ -330,12 +352,12 @@ void PID_Turn() {
     sumerror = 0;
 
   if (Turn < 0) {
-    M1P = -Turn;       // One motor becomes slower and the other faster
-    M2P = Turn;
+    M1P = Turn;        // One motor becomes slower and the other faster
+    M2P = -Turn;
   }
   else if (Turn > 0) {
-    M1P = -Turn;
-    M2P = Turn;
+    M1P = Turn;
+    M2P = -Turn;
   }
   else {
     M1P = 0;
@@ -349,7 +371,7 @@ void PID_Turn() {
 
 // ************************************************************************************************* //
 // function to print values of interest
-void Print() {
+void PrintData() {
   Serial.print(" Sp: " + String(SpRead) + " P: " + String(kP) + " I: " + String(kI) + " D: " + String(kD) + "  PResistor Val : "); // Prints PID settings
 
   for (int i = 0; i < totalPhotoResistors; i++) { // Printing the photo resistor reading values one by one
@@ -360,7 +382,7 @@ void Print() {
 
   Serial.print(" Error: " + String(error));      // this will show the calculated error (-3 through 3)
 
-  Serial.println("  LMotor:  " + String(M1SpeedtoMotor) + "  RMotor:  " + String(M2SpeedtoMotor));    // This prints the arduino output to each motor so you can see what the values are (0-255)
+  Serial.println("  LMotor:  " + String(M2SpeedtoMotor) + "  RMotor:  " + String(M1SpeedtoMotor));    // This prints the arduino output to each motor so you can see what the values are (0-255)
   setLeds(0); 
   delay(100);                                    // just here to slow down the output for easier reading. Don't comment out or else it'll slow down the processor on the arduino
   setLeds(1); 

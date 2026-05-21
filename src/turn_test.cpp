@@ -69,7 +69,7 @@ L298NX2 DriveMotors(  42,  41,  40,     37,  39,  38);
 
 enum side { LEFT, RIGHT };
 
-const int TEST_SPEED = 80; // 0–255, keep low so nothing crashes during validation
+const int TEST_SPEED = 60; // 0–255, keep low so nothing crashes during validation
 
 // ── helper: matches main.cpp's runMotorAtSpeed exactly ───────────────────────
 // positive speed = physical forward, negative speed = physical backward
@@ -95,7 +95,7 @@ void stopAll() {
 void goStraight(int ms) {
   Serial.println(">> STRAIGHT");
   runMotorAtSpeed(LEFT,  TEST_SPEED);
-  runMotorAtSpeed(RIGHT, TEST_SPEED);
+  runMotorAtSpeed(RIGHT, -TEST_SPEED);
   delay(ms);
 }
 
@@ -120,12 +120,6 @@ void setup() {
 }
 
 void loop() {
-  goStraight(1500);
-  stopAll(); delay(500);
-
-  turnLeft(1000);
-  stopAll(); delay(500);
-
-  turnRight(1000);
+  goStraight(2000);
   stopAll(); delay(500);
 }
