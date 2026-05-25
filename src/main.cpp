@@ -305,11 +305,8 @@ void CalcError() {
     if (val > threshold) {
       lineDetected = true;
       
-      // Square the value to sharpen the peak and ignore minor shadows
-      float squaredVal = val * val; 
-      
-      numerator += (squaredVal * i);
-      denominator += squaredVal;
+      numerator += (val * i);
+      denominator += val;
     }
   }
 
