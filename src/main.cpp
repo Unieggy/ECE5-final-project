@@ -37,9 +37,9 @@
 // ************************************************************************************************* //
 // Change Robot Settings here
 
-#define PRINTALLDATA        1  // Turn to 1  to prints ALL the data when changed to 1, Could be useful for debugging =)
+#define PRINTALLDATA        0  // Turn to 1  to prints ALL the data when changed to 1, Could be useful for debugging =)
                                 // !! Turn to 0 when running robot untethered
-#define NOMINALSPEED        80 // This is the base speed for both motors, can also be increased by using potentiometer
+#define NOMINALSPEED        60 // This is the base speed for both motors, can also be increased by using potentiometer
 // ************************************************************************************************* //
 
 // ****** DECLARE PINS HERE  ****** 
@@ -59,7 +59,7 @@ const int P_pin = 12; // Pin connected to P term potentiometer
 const int I_pin = 11; // Pin connected to I term potentiometer
 const int D_pin = 10; // Pin connected to D term potentiometer
                                                                  
-int led_Pins[] = {46};  // LEDs to indicate what part of calibration you're on and to illuminate the photoresistors
+int led_Pins[] = {46,17};  // LEDs to indicate what part of calibration you're on and to illuminate the photoresistors
 const int EXT_LED_PIN = 9; // External LED — steady on during calibration and full run
 
 // ****** DECLARE Variables HERE  ****** 
@@ -84,7 +84,7 @@ float AveRead, WeightedAve;
 
 // For Motor Control
 int M1SpeedtoMotor, M2SpeedtoMotor;
-int Turn, M1P = 0, M2P = 0;
+float Turn; int M1P = 0, M2P = 0;
 float error, lasterror = 0, sumerror = 0;
 float kP, kI, kD;
 
@@ -135,10 +135,11 @@ void loop() {
 
   RunMotors();          // Runs motors
   
-  if (PRINTALLDATA)     // If PRINTALLDATA Enabled, Print all the data
-    PrintData();      
-    
-  
+  if (PRINTALLDATA)
+    PrintData();
+  else
+    delay(10); // keep loop at ~100Hz and yield to RTOS watchdog
+
 } // end loop()
 
 
@@ -261,8 +262,8 @@ void ReadPhotoResistors() {
 // **********Recall your Challenge #3 Code********************************************************************** //
 // function to start motors using nominal speed + speed addition from potentiometer
 void RunMotors() {
-  M1SpeedtoMotor = min(NOMINALSPEED + SpRead + M1P, 255); // limits speed to 255
-  M2SpeedtoMotor = min(NOMINALSPEED + SpRead + M2P, 255); // remember M1Sp & M2Sp is defined at beginning of code (default 60)
+  M1SpeedtoMotor = constrain(NOMINALSPEED + SpRead + M1P, -255, 255);
+  M2SpeedtoMotor = constrain(NOMINALSPEED + SpRead + M2P, -255 ,255);
   
   runMotorAtSpeed(LEFT,  M1SpeedtoMotor); // physical RIGHT wheel (Motor A, left pins)
   runMotorAtSpeed(RIGHT, M2SpeedtoMotor); // physical LEFT wheel  (Motor B, right pins)
@@ -295,7 +296,7 @@ void runMotorAtSpeed(side _side, int speed) {
 void CalcError() {
   float numerator = 0.0;
   float denominator = 0.0;
-  float threshold = 5.0; // Ignore any sensor reading below 5% (floor noise)
+  float threshold = 3.0; // Ignore any sensor reading below 4% (floor noise)
   bool lineDetected = false;
 
   // 1. Loop through ALL 7 sensors and sum up the weights
@@ -320,14 +321,7 @@ void CalcError() {
     error = WeightedAve - 3.0; 
     
   } else {
-    // 3. LOST LINE MEMORY
-    // If moving so fast that we completely overshoot the line,
-    // look at the last known error and command a hard spin to find it again.
-    if (lasterror > 0) {
-      error = 3.5; // Max positive error to force a hard right spin
-    } else {
-      error = -3.5; // Max negative error to force a hard left spin
-    }
+    error = lasterror; // No line detected — hold the last known correction
   }
 } // end CalcError()
 
@@ -338,31 +332,15 @@ void PID_Turn() {
   kI = (float)kIRead * 0.001;
   kD = (float)kDRead * 0.01;
 
-  Turn = error * kP + sumerror * kI + (error - lasterror) * kD; // PID!!!!!!!!!!!!!
+  Turn = error * kP + sumerror * kI + (error - lasterror) * kD;
 
-  if (sumerror > 5)   // prevents integrator wind-up
-    sumerror = 5;
-  else if (sumerror < -5)
-    sumerror = -5;
+  sumerror = constrain(sumerror + error, -5.0, 5.0);
+  if (error == 0) sumerror = 0;
 
-  if (error == 0)     // Reset sumerror if line is centered
-    sumerror = 0;
-
-  if (Turn < 0) {
-    M1P = Turn;        // One motor becomes slower and the other faster
-    M2P = -Turn;
-  }
-  else if (Turn > 0) {
-    M1P = Turn;
-    M2P = -Turn;
-  }
-  else {
-    M1P = 0;
-    M2P = 0;
-  }
+  M1P = (int)(-Turn);
+  M2P = (int)(Turn);
 
   lasterror = error;
-  sumerror = sumerror + error;
 
 } // end PID_Turn()
 
