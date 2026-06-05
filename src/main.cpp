@@ -296,7 +296,7 @@ void runMotorAtSpeed(side _side, int speed) {
 void CalcError() {
   float numerator = 0.0;
   float denominator = 0.0;
-  float threshold = 3.0; // Ignore any sensor reading below 4% (floor noise)
+  float threshold = 6.0; // Ignore any sensor reading below 6% (floor noise)
   bool lineDetected = false;
 
   // 1. Loop through ALL 7 sensors and sum up the weights
