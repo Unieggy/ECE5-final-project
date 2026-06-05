@@ -262,9 +262,14 @@ void ReadPhotoResistors() {
 // **********Recall your Challenge #3 Code********************************************************************** //
 // function to start motors using nominal speed + speed addition from potentiometer
 void RunMotors() {
-  M1SpeedtoMotor = constrain(NOMINALSPEED + SpRead + M1P, -255, 255);
-  M2SpeedtoMotor = constrain(NOMINALSPEED + SpRead + M2P, -255 ,255);
-  
+  // Dynamic braking: shave base speed proportional to how lost we are.
+  // Lets you run faster on straights without overshooting on curves.
+  int brake = (int)constrain(fabs(error) * 8.0f, 0.0f, 40.0f);
+  int base  = NOMINALSPEED + SpRead - brake;
+
+  M1SpeedtoMotor = constrain(base + M1P, -255, 255);
+  M2SpeedtoMotor = constrain(base + M2P, -255, 255);
+
   runMotorAtSpeed(LEFT,  M1SpeedtoMotor); // physical RIGHT wheel (Motor A, left pins)
   runMotorAtSpeed(RIGHT, M2SpeedtoMotor); // physical LEFT wheel  (Motor B, right pins)
 } // end RunMotors()
@@ -296,7 +301,7 @@ void runMotorAtSpeed(side _side, int speed) {
 void CalcError() {
   float numerator = 0.0;
   float denominator = 0.0;
-  float threshold = 6.0; // Ignore any sensor reading below 6% (floor noise)
+  float threshold = 9.0; // Ignore any sensor reading below 9% (floor noise)
   bool lineDetected = false;
 
   // 1. Loop through ALL 7 sensors and sum up the weights
