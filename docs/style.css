@@ -434,6 +434,23 @@ model-viewer {
 
 .team-section { padding: 1rem 0 0; }
 
+.group-photo {
+  max-width: 100%;
+  margin: 1.5rem auto 2rem;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+}
+
+.group-photo img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 520px;
+  object-fit: cover;
+}
+
 .team-grid {
   display: flex;
   justify-content: center;
